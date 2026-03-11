@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+{% block title %}Beranda{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-icon">
+            <i class="fas fa-mountain-sun"></i>
+        </div>
+        <h1>Informasi <span class="gradient-text">Gempa Bumi</span> Terkini</h1>
+        <p>Pantau data gempa bumi terkini di Indonesia secara real-time dari Badan Meteorologi, Klimatologi, dan Geofisika (BMKG) dengan visualisasi yang informatif</p>
+        <a href="/home" class="hero-btn">
+            <i class="fas fa-satellite-dish"></i> Lihat Data Gempa
+        </a>
+
+        <!-- Feature Cards -->
+        <div class="features-grid">
+            <div class="feature-card animate-in">
+                <div class="feature-icon cyan">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3>Data Real-Time</h3>
+                <p>Data gempa langsung dari API resmi BMKG yang selalu ter-update</p>
+            </div>
+            <div class="feature-card animate-in">
+                <div class="feature-icon violet">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <h3>Filter Magnitude</h3>
+                <p>Lihat gempa yang berpotensi berbahaya dengan filter magnitude ≥ 5.5</p>
+            </div>
+            <div class="feature-card animate-in">
+                <div class="feature-icon green">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h3>Visualisasi Data</h3>
+                <p>Grafik dan chart interaktif untuk memahami pola gempa dengan mudah</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,50 +1,33 @@
 {% extends 'layout.html' %}
+{% block title %}Tentang{% endblock %}
 
-{%block content%}
-<!DOCTYPE html>
-<html lang="en">
+{% block content %}
+<div class="page-container">
+    <!-- Section Header -->
+    <div class="section-header">
+        <h1><i class="fas fa-users"></i> Tentang Kami</h1>
+        <div class="accent-bar"></div>
+        <p>Tim pengembang aplikasi Gempain</p>
+    </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About</title>
-</head>
+    <!-- Project Description -->
+    <div class="about-description animate-in">
+        <p>
+            <strong>Gempain</strong> dibuat untuk memenuhi tugas mata kuliah <strong>Pemrograman Fungsional</strong>
+            dengan menerapkan <em>High Order Function</em> dan <em>Web Service</em> menggunakan JSON
+            pada program Python dengan menggunakan data real dari BMKG.
+        </p>
+    </div>
 
-<body class="bdy">
-    <section>
-        <div class="about-container">
-            <h1>Anggota Kelompok</h1>
-            <p class="desk"> Untuk memenuhi tugas matakuliah Pemograman Fungsional
-                dengan menerapkan High Order Function dan Web Service mengunakan JSON pada program python
-                dengan menggunakan data real pada sebuah website
-            </p>
-            <div class="slide-container-wrapper">
-                {% for i in range(0,len)%}
-                <div class="slide-container">
-                    <div class="slide-content">
-                        <div class="card-wrapper">
-                            <div class="card">
-                                <div class="image-content">
-                                    <span class="overlay"></span>
-                                    <div class="card-image"></div>
-                                    <img class="profile" src={{datakelompok[i].gambar}} alt="card-img">
-                                </div>
-                                <div class="card-content">
-                                    <h2 class="name">{{datakelompok[i].nama}}</h2>
-                                    <p class="description">{{datakelompok[i].nim}}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {%endfor%}
-            </div>
+    <!-- Team Cards -->
+    <div class="team-grid">
+        {% for i in range(0, len) %}
+        <div class="team-card animate-in">
+            <img class="avatar" src="{{ url_for('static', filename='images/' ~ datakelompok[i].gambar) }}" alt="{{ datakelompok[i].nama }}">
+            <h3 class="member-name">{{ datakelompok[i].nama }}</h3>
+            <span class="member-nim">{{ datakelompok[i].nim }}</span>
         </div>
-        </div>
-        </div>
-    </section>
-</body>
-
-</html>
-{%endblock content%}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

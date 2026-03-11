@@ -1,73 +1,139 @@
 {% extends 'layout.html' %}
+{% block title %}Data Gempa{% endblock %}
 
-{%block content%}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-</head>
-<h1 class="header">
-    LAPORAN GEMPA TERKINI
-</h1>
-<body>
-    <div class="content">
-        <table class="tabel">
-            <thead>
-                <tr class="row-ket">
-                    <th>Tanggal</th>
-                    <th>Jam</th>
-                    <th>Coordinat</th>
-                    <th>Lintang</th>
-                    <th>Bujur</th>
-                    <th>Magnitude</th>
-                    <th>Kedalaman</th>
-                    <th>Wilayah</th>
-                    <th>Potensi</th>
-                </tr>
-            </thead>
-            <tbody class="data-gempa-all">
-                {% for data in datagempa %}
-                <tr class="data-gempa">
-                    <td>{{ data.Tanggal }}</td>
-                    <td>{{ data.Jam }}</td>
-                    <td>{{ data.Coordinates }}</td>
-                    <td>{{ data.Lintang }}</td>
-                    <td>{{ data.Bujur }}</td>
-                    <td>{{ data.Magnitude }}</td>
-                    <td>{{ data.Kedalaman }}</td>
-                    <td>{{ data.Wilayah }}</td>
-                    <td>{{ data.Potensi }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% block content %}
+<div class="page-container">
+    <!-- Section Header -->
+    <div class="section-header">
+        <h1><i class="fas fa-satellite-dish"></i> Laporan Gempa Terkini</h1>
+        <div class="accent-bar"></div>
+        <p>Data gempa bumi terbaru dari BMKG Indonesia</p>
     </div>
-    <h1 class="header-filter">Data filter gempa yang lebih dari 5.5 Magnitude</h1>
-    <div class="filter">
-        <table class="tb-filter">
-            <thead >
-                <tr class="row-filter">
-                    <th>Tanggal</th>
-                    <th>Magnitude</th>
-                    <th>Wilayah</th>
-                </tr>
-            </thead>
-            {% for gempa in hasilfilter %}
-            <tbody>
-                 <div class="filter">
-                    <td>{{ gempa.Tanggal}}</td>
-                    <td class = "Magnitude">
-                        {{ gempa.Magnitude}}
-                    </td>
-                    <td>{{gempa.Wilayah}}</td>
-                </div>
-            </tbody>
-            {% endfor %}
-        </table>
+
+    <!-- Summary Stats -->
+    <div class="stats-grid">
+        <div class="stat-card total animate-in">
+            <div class="stat-icon"><i class="fas fa-list-ol"></i></div>
+            <div class="stat-value">{{ datagempa|length }}</div>
+            <div class="stat-label">Total Gempa</div>
+        </div>
+        <div class="stat-card max-mag animate-in">
+            <div class="stat-icon"><i class="fas fa-arrows-up-down"></i></div>
+            <div class="stat-value">{{ max_mag }}</div>
+            <div class="stat-label">Magnitude Tertinggi</div>
+        </div>
+        <div class="stat-card high-risk animate-in">
+            <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="stat-value">{{ hasilfilter|length }}</div>
+            <div class="stat-label">Gempa ≥ 5.5 M</div>
+        </div>
     </div>
-</body>
-</html>
-{%endblock content%}
+
+    <!-- All Earthquake Table -->
+    <div class="table-wrapper animate-in">
+        <div class="table-title">
+            <i class="fas fa-table"></i>
+            <h2>Semua Data Gempa</h2>
+        </div>
+        <div class="search-box" style="margin: 1rem 1.5rem 0;">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchAll" placeholder="Cari wilayah..." onkeyup="filterTable('searchAll','tableAll')">
+        </div>
+        <div class="table-responsive">
+            <table id="tableAll">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Jam</th>
+                        <th>Koordinat</th>
+                        <th>Lintang</th>
+                        <th>Bujur</th>
+                        <th>Magnitude</th>
+                        <th>Kedalaman</th>
+                        <th>Wilayah</th>
+                        <th>Potensi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if datagempa|length > 0 %}
+                        {% for data in datagempa %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ data.Tanggal }}</td>
+                            <td>{{ data.Jam }}</td>
+                            <td>{{ data.Coordinates }}</td>
+                            <td>{{ data.Lintang }}</td>
+                            <td>{{ data.Bujur }}</td>
+                            <td>
+                                {% set mag = data.Magnitude|float %}
+                                <span class="mag-badge {% if mag >= 6.0 %}mag-critical{% elif mag >= 5.5 %}mag-high{% elif mag >= 4.0 %}mag-medium{% else %}mag-low{% endif %}">
+                                    {{ data.Magnitude }}
+                                </span>
+                            </td>
+                            <td>{{ data.Kedalaman }}</td>
+                            <td>{{ data.Wilayah }}</td>
+                            <td>{{ data.Potensi }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="10">
+                                <div class="empty-state">
+                                    <i class="fas fa-database"></i>
+                                    <p>Data gempa tidak tersedia saat ini</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Filtered Table (High Magnitude) -->
+    <div class="table-wrapper animate-in">
+        <div class="table-title">
+            <i class="fas fa-triangle-exclamation" style="color: var(--severity-critical);"></i>
+            <h2>Gempa Magnitude ≥ 5.5 (Berpotensi Berbahaya)</h2>
+        </div>
+        <div class="table-responsive">
+            <table id="tableFilter">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Magnitude</th>
+                        <th>Wilayah</th>
+                        <th>Potensi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if hasilfilter|length > 0 %}
+                        {% for gempa in hasilfilter %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ gempa.Tanggal }}</td>
+                            <td>
+                                <span class="mag-badge mag-critical">{{ gempa.Magnitude }}</span>
+                            </td>
+                            <td>{{ gempa.Wilayah }}</td>
+                            <td>{{ gempa.Potensi }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <i class="fas fa-check-circle" style="color: var(--severity-low);"></i>
+                                    <p>Tidak ada gempa dengan magnitude ≥ 5.5 saat ini</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
