@@ -11,6 +11,7 @@ Project ini juga dibuat untuk memenuhi tugas mata kuliah **Pemrograman Fungsiona
 ## ✨ Fitur Utama
 
 - **Data Real-Time**: Terintegrasi langsung dengan API BMKG (`gempaterkini.json`).
+- **Peta Koordinat Interaktif (Leaflet.js)**: Pemetaan geografis titik pusat gempa (episenter) terkini di seluruh Indonesia dengan marker animasi berdenyut (*pulse ring*), custom popup detail, filter magnitude real-time, layer basemap (Dark Matter, Street Map, Satelit), dan sinkronisasi kartu titik gempa.
 - **Premium Dark UI**: Antarmuka modern dengan gaya *glassmorphism*, *mesh gradients*, dan elemen interaktif.
 - **Visualisasi Data**: Menampilkan statistik dan chart interaktif (Distribusi Magnitude, Wilayah, Kedalaman) menggunakan *Chart.js*.
 - **High Order Function Filter**: Menggunakan manipulasi *functional programming* (Python) untuk memfilter gempa dengan magnitude berbahaya (≥ 5.5).
@@ -22,6 +23,7 @@ Project ini juga dibuat untuk memenuhi tugas mata kuliah **Pemrograman Fungsiona
 
 - **Backend**: Python 3, Flask
 - **Frontend**: HTML5, Vanilla CSS, JavaScript, Bootstrap 5
+- **Peta & GIS**: Leaflet.js, CartoDB Dark Matter, OpenStreetMap, Esri World Imagery
 - **Visualisasi**: Chart.js
 - **Data Source**: [BMKG Open Data API](https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json)
 - **Avatars**: DiceBear API / Static Assets
@@ -59,11 +61,11 @@ Pastikan Anda sudah menginstal **Python 3.x** di sistem Anda.
 4. **Jalankan Aplikasi**
    Jalankan file utama aplikasi Flask:
    ```bash
-   python run.py
+   python app.py
    ```
    Atau jika menggunakan command Flask langsung:
    ```bash
-   set FLASK_APP=run.py
+   set FLASK_APP=app.py
    flask run
    ```
 

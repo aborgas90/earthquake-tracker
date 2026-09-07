@@ -17,7 +17,7 @@ try:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
     )
-    f = urllib.request.urlopen(req).read().decode()
+    f = urllib.request.urlopen(req, timeout=10).read().decode()
     data = json.loads(f)  # serializing data json object
     data = data["Infogempa"]["gempa"]  # object
 
@@ -33,6 +33,15 @@ try:
         gempa['Kedalaman'] = data[i]['Kedalaman']
         gempa['Wilayah'] = data[i]['Wilayah']
         gempa['Potensi'] = data[i]['Potensi']
+        # Parse numeric latitude and longitude from Coordinates ("lat,lng")
+        coords = data[i].get('Coordinates', '')
+        try:
+            coord_parts = [float(x.strip()) for x in coords.split(',')]
+            gempa['lat'] = coord_parts[0]
+            gempa['lng'] = coord_parts[1]
+        except (ValueError, IndexError):
+            gempa['lat'] = None
+            gempa['lng'] = None
         datagempa.append(gempa)
 except urllib.error.HTTPError as e:
     print(f"Error fetching BMKG data: {e}")
@@ -114,7 +123,32 @@ def build_chart_data(data):
         else:
             potensi_count['Berpotensi tsunami'] += 1
 
+    # Timeline trend (chronological: oldest to newest)
+    timeline_labels = []
+    timeline_mags = []
+    timeline_tooltips = []
+    for d in reversed(data):
+        timeline_labels.append(f"{d['Tanggal'][:6]} {d['Jam'][:5]}")
+        timeline_mags.append(float(d['Magnitude']))
+        timeline_tooltips.append(f"{d['Wilayah']} ({d['Magnitude']} M)")
+
+    # Key Insights calculations
+    total = len(data)
+    avg_mag = round(sum(float(d['Magnitude']) for d in data) / total, 2) if total > 0 else 0
+    shallow_count = depth_ranges['0-30 km'] + depth_ranges['31-70 km']
+    shallow_pct = round((shallow_count / total * 100)) if total > 0 else 0
+    tsunami_safe_count = potensi_count['Tidak berpotensi tsunami']
+    tsunami_safe_pct = round((tsunami_safe_count / total * 100)) if total > 0 else 0
+    top_region = sorted_regions[0][0] if sorted_regions else '-'
+    top_region_count = sorted_regions[0][1] if sorted_regions else 0
+
     return {
+        'total_quakes': total,
+        'avg_mag': avg_mag,
+        'shallow_pct': shallow_pct,
+        'tsunami_safe_pct': tsunami_safe_pct,
+        'top_region': top_region,
+        'top_region_count': top_region_count,
         'mag_labels': list(mag_ranges.keys()),
         'mag_counts': list(mag_ranges.values()),
         'region_labels': [r[0] for r in sorted_regions],
@@ -123,6 +157,9 @@ def build_chart_data(data):
         'depth_counts': list(depth_ranges.values()),
         'potensi_labels': list(potensi_count.keys()),
         'potensi_counts': list(potensi_count.values()),
+        'timeline_labels': timeline_labels,
+        'timeline_mags': timeline_mags,
+        'timeline_tooltips': timeline_tooltips,
     }
 
 
@@ -163,3 +200,9 @@ def home():
 def graphic():
     chart_data = build_chart_data(datagempa)
     return render_template('graphic.html', chart_data=chart_data)
+
+
+@app.route('/map')
+def map_view():
+    max_mag = get_max_magnitude(datagempa)
+    return render_template('map.html', datagempa=datagempa, hasilfilter=hasilfilter, max_mag=max_mag)

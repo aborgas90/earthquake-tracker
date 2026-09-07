@@ -5,9 +5,9 @@
 <div class="page-container">
     <!-- Section Header -->
     <div class="section-header">
-        <h1><i class="fas fa-satellite-dish"></i> Laporan Gempa Terkini</h1>
+        <h1><i class="fas fa-satellite-dish"></i> <span data-i18n="data.page_title">Laporan Gempa Terkini</span></h1>
         <div class="accent-bar"></div>
-        <p>Data gempa bumi terbaru dari BMKG Indonesia</p>
+        <p data-i18n="data.page_desc">Data gempa bumi terbaru dari BMKG Indonesia</p>
     </div>
 
     <!-- Summary Stats -->
@@ -15,17 +15,40 @@
         <div class="stat-card total animate-in">
             <div class="stat-icon"><i class="fas fa-list-ol"></i></div>
             <div class="stat-value">{{ datagempa|length }}</div>
-            <div class="stat-label">Total Gempa</div>
+            <div class="stat-label" data-i18n="stat.total_quakes">Total Gempa</div>
         </div>
         <div class="stat-card max-mag animate-in">
             <div class="stat-icon"><i class="fas fa-arrows-up-down"></i></div>
             <div class="stat-value">{{ max_mag }}</div>
-            <div class="stat-label">Magnitude Tertinggi</div>
+            <div class="stat-label" data-i18n="stat.max_mag">Magnitude Tertinggi</div>
         </div>
         <div class="stat-card high-risk animate-in">
             <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
             <div class="stat-value">{{ hasilfilter|length }}</div>
-            <div class="stat-label">Gempa ≥ 5.5 M</div>
+            <div class="stat-label" data-i18n="stat.high_risk_short">Gempa ≥ 5.5 M</div>
+        </div>
+    </div>
+
+    <!-- Embedded Earthquake Map Preview (100% Free Open Map) -->
+    <div class="map-card-wrapper animate-in" style="margin-bottom: 2rem;">
+        <div class="map-header-bar">
+            <div class="map-title">
+                <i class="fas fa-map-location-dot"></i>
+                <h2 data-i18n="data.preview_map_title">Peta Koordinat Episenter</h2>
+            </div>
+            <div class="map-actions">
+                <a href="/map" class="map-btn">
+                    <i class="fas fa-expand"></i> <span data-i18n="data.btn_fullscreen_map">Peta Layar Penuh</span>
+                </a>
+            </div>
+        </div>
+        <div id="homeEarthquakeMap" class="leaflet-map-canvas" style="height: 380px;"></div>
+        <div class="map-legend" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+            <div class="legend-item"><span class="legend-color legend-green"></span><span data-i18n="map.legend_minor">&lt; 5.0 M</span></div>
+            <div class="legend-item"><span class="legend-color legend-yellow"></span><span data-i18n="map.legend_moderate">5.0 - 5.4 M</span></div>
+            <div class="legend-item"><span class="legend-color legend-orange"></span><span data-i18n="map.legend_strong">5.5 - 5.9 M</span></div>
+            <div class="legend-item"><span class="legend-color legend-red"></span><span data-i18n="map.legend_major">≥ 6.0 M</span></div>
+            <div class="legend-info"><i class="fas fa-info-circle"></i> <span data-i18n="data.map_click_hint">Klik ikon peta pada tabel di bawah untuk melihat titik gempa</span></div>
         </div>
     </div>
 
@@ -33,36 +56,37 @@
     <div class="table-wrapper animate-in">
         <div class="table-title">
             <i class="fas fa-table"></i>
-            <h2>Semua Data Gempa</h2>
+            <h2 data-i18n="data.all_quakes_title">Semua Data Gempa</h2>
         </div>
         <div class="search-box" style="margin: 1rem 1.5rem 0;">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchAll" placeholder="Cari wilayah..." onkeyup="filterTable('searchAll','tableAll')">
+            <input type="text" id="searchAll" data-i18n-placeholder="data.search_placeholder" placeholder="Cari wilayah..." onkeyup="filterTable('searchAll','tableAll')">
         </div>
         <div class="table-responsive">
             <table id="tableAll">
                 <thead>
                     <tr>
-                        <th>No</th>
-                        <th>Tanggal</th>
-                        <th>Jam</th>
-                        <th>Koordinat</th>
-                        <th>Lintang</th>
-                        <th>Bujur</th>
-                        <th>Magnitude</th>
-                        <th>Kedalaman</th>
-                        <th>Wilayah</th>
-                        <th>Potensi</th>
+                        <th data-i18n="th.no">No</th>
+                        <th data-i18n="th.date">Tanggal</th>
+                        <th data-i18n="th.time">Jam</th>
+                        <th data-i18n="th.coords">Koordinat</th>
+                        <th data-i18n="th.lat">Lintang</th>
+                        <th data-i18n="th.lng">Bujur</th>
+                        <th data-i18n="th.magnitude">Magnitude</th>
+                        <th data-i18n="th.depth">Kedalaman</th>
+                        <th data-i18n="th.region">Wilayah</th>
+                        <th data-i18n="th.potential">Potensi</th>
+                        <th data-i18n="th.map">Peta</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if datagempa|length > 0 %}
                         {% for data in datagempa %}
-                        <tr>
+                        <tr id="row-quake-{{ loop.index0 }}">
                             <td>{{ loop.index }}</td>
                             <td>{{ data.Tanggal }}</td>
                             <td>{{ data.Jam }}</td>
-                            <td>{{ data.Coordinates }}</td>
+                            <td><code>{{ data.Coordinates }}</code></td>
                             <td>{{ data.Lintang }}</td>
                             <td>{{ data.Bujur }}</td>
                             <td>
@@ -73,15 +97,22 @@
                             </td>
                             <td>{{ data.Kedalaman }}</td>
                             <td>{{ data.Wilayah }}</td>
-                            <td>{{ data.Potensi }}</td>
+                            <td>
+                                <span class="table-potensi" data-raw-potensi="{{ data.Potensi }}">{{ data.Potensi }}</span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn-table-locate" onclick="focusHomeMap({{ loop.index0 }})" title="Lihat di peta">
+                                    <i class="fas fa-location-dot"></i>
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="10">
+                            <td colspan="11">
                                 <div class="empty-state">
                                     <i class="fas fa-database"></i>
-                                    <p>Data gempa tidak tersedia saat ini</p>
+                                    <p data-i18n="table.empty">Data gempa tidak tersedia saat ini</p>
                                 </div>
                             </td>
                         </tr>
@@ -95,17 +126,17 @@
     <div class="table-wrapper animate-in">
         <div class="table-title">
             <i class="fas fa-triangle-exclamation" style="color: var(--severity-critical);"></i>
-            <h2>Gempa Magnitude ≥ 5.5 (Berpotensi Berbahaya)</h2>
+            <h2 data-i18n="data.filter_quakes_title">Gempa Magnitude ≥ 5.5 (Berpotensi Berbahaya)</h2>
         </div>
         <div class="table-responsive">
             <table id="tableFilter">
                 <thead>
                     <tr>
-                        <th>No</th>
-                        <th>Tanggal</th>
-                        <th>Magnitude</th>
-                        <th>Wilayah</th>
-                        <th>Potensi</th>
+                        <th data-i18n="th.no">No</th>
+                        <th data-i18n="th.date">Tanggal</th>
+                        <th data-i18n="th.magnitude">Magnitude</th>
+                        <th data-i18n="th.region">Wilayah</th>
+                        <th data-i18n="th.potential">Potensi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -118,7 +149,9 @@
                                 <span class="mag-badge mag-critical">{{ gempa.Magnitude }}</span>
                             </td>
                             <td>{{ gempa.Wilayah }}</td>
-                            <td>{{ gempa.Potensi }}</td>
+                            <td>
+                                <span class="table-potensi" data-raw-potensi="{{ gempa.Potensi }}">{{ gempa.Potensi }}</span>
+                            </td>
                         </tr>
                         {% endfor %}
                     {% else %}
@@ -126,7 +159,7 @@
                             <td colspan="5">
                                 <div class="empty-state">
                                     <i class="fas fa-check-circle" style="color: var(--severity-low);"></i>
-                                    <p>Tidak ada gempa dengan magnitude ≥ 5.5 saat ini</p>
+                                    <p data-i18n="table.filter_empty">Tidak ada gempa dengan magnitude ≥ 5.5 saat ini</p>
                                 </div>
                             </td>
                         </tr>
@@ -136,4 +169,143 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const homeQuakeData = {{ datagempa|tojson }};
+    const homeQuakes = homeQuakeData.map((item, index) => {
+        let lat = item.lat;
+        let lng = item.lng;
+        if ((lat === null || lng === null || isNaN(lat) || isNaN(lng)) && item.Coordinates) {
+            const parts = item.Coordinates.split(',');
+            if (parts.length === 2) {
+                lat = parseFloat(parts[0].trim());
+                lng = parseFloat(parts[1].trim());
+            }
+        }
+        return {
+            ...item,
+            id: index,
+            lat: lat,
+            lng: lng,
+            mag: parseFloat(item.Magnitude) || 0
+        };
+    }).filter(item => !isNaN(item.lat) && !isNaN(item.lng));
+
+    // 100% Free OpenStreetMap Tile Layer (No Watermark, No Key Required)
+    const homeMap = L.map('homeEarthquakeMap', {
+        center: [-2.5, 118.0],
+        zoom: 5,
+        zoomControl: true,
+        layers: [
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            })
+        ]
+    });
+
+    const homeMarkerGroup = L.featureGroup().addTo(homeMap);
+    const homeMarkers = [];
+
+    function getMarkerColor(mag) {
+        if (mag >= 6.0) return '#ef4444';
+        if (mag >= 5.5) return '#f97316';
+        if (mag >= 5.0) return '#eab308';
+        return '#22c55e';
+    }
+
+    function formatTsunamiText(potensi) {
+        const isSafe = (potensi || '').toLowerCase().includes('tidak');
+        if (currentLanguage === 'en') {
+            return isSafe ? 'No tsunami threat' : 'Tsunami hazard warning';
+        }
+        return potensi;
+    }
+
+    function createHomePopup(quake) {
+        const color = getMarkerColor(quake.mag);
+        const potText = formatTsunamiText(quake.Potensi);
+        return `
+            <div class="custom-map-popup">
+                <div class="popup-header" style="border-left: 4px solid ${color};">
+                    <span class="popup-mag-badge" style="background: ${color};">${quake.Magnitude} M</span>
+                    <div class="popup-title-group">
+                        <h4 class="popup-title">${quake.Wilayah}</h4>
+                        <span class="popup-time">${quake.Tanggal} | ${quake.Jam}</span>
+                    </div>
+                </div>
+                <div class="popup-body">
+                    <div class="popup-row">
+                        <span class="popup-label">${t('th.coords')}:</span>
+                        <span class="popup-val"><code>${quake.Coordinates}</code></span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">${t('th.depth')}:</span>
+                        <span class="popup-val">${quake.Kedalaman}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">${t('th.potential')}:</span>
+                        <span class="popup-val">${potText}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    homeQuakes.forEach((quake) => {
+        const color = getMarkerColor(quake.mag);
+        const radius = Math.max(6, Math.min(18, (quake.mag - 3.5) * 5));
+
+        const marker = L.circleMarker([quake.lat, quake.lng], {
+            radius: radius,
+            fillColor: color,
+            color: '#ffffff',
+            weight: 1.5,
+            opacity: 0.9,
+            fillOpacity: 0.75
+        });
+
+        marker.bindPopup(createHomePopup(quake), { className: 'gempain-popup', maxWidth: 300 });
+        homeMarkerGroup.addLayer(marker);
+        homeMarkers.push({ id: quake.id, quake: quake, marker: marker });
+    });
+
+    if (homeMarkers.length > 0) {
+        homeMap.fitBounds(homeMarkerGroup.getBounds(), { padding: [30, 30], maxZoom: 6 });
+    }
+
+    function focusHomeMap(index) {
+        const item = homeMarkers.find(m => m.id === index);
+        if (!item) return;
+
+        homeMap.flyTo([item.quake.lat, item.quake.lng], 8, { duration: 1 });
+        setTimeout(() => {
+            item.marker.openPopup();
+        }, 500);
+
+        const mapEl = document.getElementById('homeEarthquakeMap');
+        if (mapEl) {
+            mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // Language Change Listener
+    window.onLanguageChange = function(lang) {
+        homeMarkers.forEach(item => {
+            item.marker.setPopupContent(createHomePopup(item.quake));
+        });
+        document.querySelectorAll('.table-potensi').forEach(el => {
+            const raw = el.getAttribute('data-raw-potensi');
+            el.textContent = formatTsunamiText(raw);
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof onLanguageChange === 'function') {
+            onLanguageChange(currentLanguage);
+        }
+    });
+</script>
 {% endblock %}

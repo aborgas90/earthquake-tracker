@@ -1,0 +1,502 @@
+{% extends 'layout.html' %}
+{% block title %}Peta Koordinat Gempa{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Section Header -->
+    <div class="section-header">
+        <h1><i class="fas fa-map-location-dot"></i> <span data-i18n="map.page_title">Peta Koordinat Gempa Bumi</span></h1>
+        <div class="accent-bar"></div>
+        <p data-i18n="map.page_desc">Visualisasi geografis titik pusat gempa (episenter) terkini di seluruh wilayah Indonesia berdasarkan koordinat resmi BMKG (100% Peta Gratis)</p>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="stats-grid">
+        <div class="stat-card total animate-in">
+            <div class="stat-icon"><i class="fas fa-map-pin"></i></div>
+            <div class="stat-value" id="statMappedQuakes">{{ datagempa|length }}</div>
+            <div class="stat-label" data-i18n="stat.mapped_coords">Titik Koordinat Dipetakan</div>
+        </div>
+        <div class="stat-card max-mag animate-in">
+            <div class="stat-icon"><i class="fas fa-arrows-up-down"></i></div>
+            <div class="stat-value">{{ max_mag }}</div>
+            <div class="stat-label" data-i18n="stat.max_mag">Magnitude Tertinggi</div>
+        </div>
+        <div class="stat-card high-risk animate-in">
+            <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="stat-value">{{ hasilfilter|length }}</div>
+            <div class="stat-label" data-i18n="stat.high_risk">Gempa Berbahaya (≥ 5.5 M)</div>
+        </div>
+    </div>
+
+    <!-- Map Wrapper Card -->
+    <div class="map-card-wrapper animate-in">
+        <div class="map-header-bar">
+            <div class="map-title">
+                <i class="fas fa-globe-asia"></i>
+                <h2 data-i18n="map.section_title">Peta Sebaran Episenter</h2>
+                <span class="badge-live"><span class="live-dot"></span> LIVE BMKG</span>
+            </div>
+
+            <div class="map-actions">
+                <!-- 100% Free Basemap Switcher (No Watermark, No API Key) -->
+                <div class="basemap-selector">
+                    <label for="basemapSelect"><i class="fas fa-layer-group"></i> <span data-i18n="map.basemap_label">Tipe Peta:</span></label>
+                    <select id="basemapSelect" class="map-select" onchange="switchBasemap(this.value)">
+                        <option value="osm" data-i18n="map.basemap_osm" selected>OpenStreetMap (Gratis & Bebas Watermark)</option>
+                        <option value="dark" data-i18n="map.basemap_dark">OSM Dark Mode (Bebas Watermark)</option>
+                        <option value="topo" data-i18n="map.basemap_topo">Topografi (OpenTopoMap)</option>
+                    </select>
+                </div>
+
+                <!-- Reset View -->
+                <button class="map-btn" onclick="resetMapView()" title="Reset tampilan peta ke seluruh Indonesia">
+                    <i class="fas fa-compress"></i> <span data-i18n="map.reset_btn">Reset Tampilan</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Pills Bar -->
+        <div class="map-filter-bar">
+            <div class="filter-group">
+                <span class="filter-label"><i class="fas fa-filter"></i> <span data-i18n="map.filter_label">Filter Magnitude:</span></span>
+                <button class="filter-pill active" onclick="setMagnitudeFilter('all', this)"><span data-i18n="map.filter_all">Semua</span> ({{ datagempa|length }})</button>
+                <button class="filter-pill" onclick="setMagnitudeFilter('5.0', this)">≥ 5.0 M</button>
+                <button class="filter-pill" onclick="setMagnitudeFilter('5.5', this)">≥ 5.5 M</button>
+                <button class="filter-pill" onclick="setMagnitudeFilter('6.0', this)">≥ 6.0 M</button>
+            </div>
+            <div class="search-box map-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="mapSearchInput" data-i18n-placeholder="map.search_placeholder" placeholder="Cari wilayah di peta..." onkeyup="searchQuakeList(this.value)">
+            </div>
+        </div>
+
+        <!-- The Leaflet Map Container (100% Free Maps) -->
+        <div id="earthquakeMap" class="leaflet-map-canvas"></div>
+
+        <!-- Map Legend -->
+        <div class="map-legend">
+            <div class="legend-item">
+                <span class="legend-color legend-green"></span>
+                <span data-i18n="map.legend_minor">&lt; 5.0 M (Ringan)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color legend-yellow"></span>
+                <span data-i18n="map.legend_moderate">5.0 - 5.4 M (Sedang)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color legend-orange"></span>
+                <span data-i18n="map.legend_strong">5.5 - 5.9 M (Kuat)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color legend-red"></span>
+                <span data-i18n="map.legend_major">≥ 6.0 M (Sangat Kuat / Kritis)</span>
+            </div>
+            <div class="legend-info">
+                <i class="fas fa-info-circle"></i> <span data-i18n="map.legend_hint">Klik marker atau kartu untuk melihat detail & navigasi episenter</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earthquake Locations List Grid -->
+    <div class="table-wrapper animate-in" style="margin-top: 2rem;">
+        <div class="table-title">
+            <i class="fas fa-compass"></i>
+            <h2 data-i18n="map.list_title">Daftar Koordinat Episenter</h2>
+            <span class="quake-count-badge" id="visibleQuakeCount">{{ datagempa|length }} <span data-i18n="map.points_detected">Titik Terdeteksi</span></span>
+        </div>
+
+        <div class="quake-cards-grid" id="quakeCardsContainer">
+            {% for gempa in datagempa %}
+            <div class="quake-pin-card animate-in" 
+                 id="quake-card-{{ loop.index0 }}"
+                 data-mag="{{ gempa.Magnitude }}"
+                 data-wilayah="{{ gempa.Wilayah|lower }}"
+                 onclick="focusEarthquake({{ loop.index0 }})">
+                <div class="quake-card-header">
+                    {% set mag = gempa.Magnitude|float %}
+                    <span class="mag-badge {% if mag >= 6.0 %}mag-critical{% elif mag >= 5.5 %}mag-high{% elif mag >= 5.0 %}mag-medium{% else %}mag-low{% endif %}">
+                        {{ gempa.Magnitude }} M
+                    </span>
+                    <span class="quake-time"><i class="far fa-clock"></i> {{ gempa.Jam }}</span>
+                </div>
+                <div class="quake-card-body">
+                    <h4 class="quake-card-region">{{ gempa.Wilayah }}</h4>
+                    <div class="quake-coord-badge">
+                        <i class="fas fa-location-dot"></i>
+                        <span>{{ gempa.Coordinates }} ({{ gempa.Lintang }}, {{ gempa.Bujur }})</span>
+                    </div>
+                    <div class="quake-card-meta">
+                        <span><i class="fas fa-calendar-alt"></i> {{ gempa.Tanggal }}</span>
+                        <span><i class="fas fa-arrows-down-to-line"></i> {{ gempa.Kedalaman }}</span>
+                    </div>
+                    <div class="quake-potensi {% if 'tidak' in gempa.Potensi|lower %}potensi-safe{% else %}potensi-warn{% endif %}">
+                        <i class="fas {% if 'tidak' in gempa.Potensi|lower %}fa-shield-halved{% else %}fa-triangle-exclamation{% endif %}"></i>
+                        <span class="potensi-text" data-raw-potensi="{{ gempa.Potensi }}">{{ gempa.Potensi }}</span>
+                    </div>
+                </div>
+                <div class="quake-card-footer">
+                    <button type="button" class="btn-focus-map">
+                        <i class="fas fa-crosshairs"></i> <span data-i18n="map.focus_btn">Lihat di Peta</span>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Injected BMKG Data from Flask
+    const rawQuakeData = {{ datagempa|tojson }};
+
+    // Filter valid earthquakes with coordinates
+    const earthquakes = rawQuakeData.map((item, index) => {
+        let lat = item.lat;
+        let lng = item.lng;
+        if ((lat === null || lng === null || isNaN(lat) || isNaN(lng)) && item.Coordinates) {
+            const parts = item.Coordinates.split(',');
+            if (parts.length === 2) {
+                lat = parseFloat(parts[0].trim());
+                lng = parseFloat(parts[1].trim());
+            }
+        }
+        return {
+            ...item,
+            id: index,
+            lat: lat,
+            lng: lng,
+            mag: parseFloat(item.Magnitude) || 0
+        };
+    }).filter(item => !isNaN(item.lat) && !isNaN(item.lng));
+
+    // 100% Free Community Tile Layers (Zero Watermarks, Zero API Key Required)
+    const baseLayers = {
+        osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }),
+        dark: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            className: 'osm-dark-tiles',
+            maxZoom: 19
+        }),
+        topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> (&copy; <a href="https://openstreetmap.org/copyright">OSM</a>)',
+            maxZoom: 17
+        })
+    };
+
+    // Initialize Leaflet Map centered on Indonesia with OSM as default
+    const defaultCenter = [-2.5, 118.0];
+    const defaultZoom = 5;
+    const map = L.map('earthquakeMap', {
+        center: defaultCenter,
+        zoom: defaultZoom,
+        zoomControl: true,
+        layers: [baseLayers.osm]
+    });
+
+    let currentTileLayer = baseLayers.osm;
+
+    // Switch Base Map (Free tiles)
+    function switchBasemap(type) {
+        if (baseLayers[type]) {
+            map.removeLayer(currentTileLayer);
+            baseLayers[type].addTo(map);
+            currentTileLayer = baseLayers[type];
+        }
+    }
+
+    // Marker styling helper
+    function getMarkerColor(mag) {
+        if (mag >= 6.0) return '#ef4444'; // Red
+        if (mag >= 5.5) return '#f97316'; // Orange
+        if (mag >= 5.0) return '#eab308'; // Yellow
+        return '#22c55e';                 // Green
+    }
+
+    function getMarkerRadius(mag) {
+        return Math.max(7, Math.min(22, (mag - 3.5) * 6));
+    }
+
+    // Format tsunami warning text based on language
+    function formatTsunamiText(potensi) {
+        const isSafe = (potensi || '').toLowerCase().includes('tidak');
+        if (currentLanguage === 'en') {
+            return isSafe ? 'No tsunami threat' : 'Tsunami potential hazard';
+        }
+        return potensi;
+    }
+
+    // Store marker references
+    const markerGroup = L.featureGroup().addTo(map);
+    const markers = [];
+
+    // Build custom popup HTML with bilingual strings
+    function createPopupContent(quake) {
+        const isSafe = (quake.Potensi || '').toLowerCase().includes('tidak');
+        const color = getMarkerColor(quake.mag);
+        const potensiDisplay = formatTsunamiText(quake.Potensi);
+        const coordLabel = t('th.coords');
+        const depthLabel = t('th.depth');
+        const potLabel = t('th.potential');
+        const creditText = t('map.source_credit');
+        const zoomText = t('map.zoom_epicenter');
+
+        return `
+            <div class="custom-map-popup">
+                <div class="popup-header" style="border-left: 4px solid ${color};">
+                    <span class="popup-mag-badge" style="background: ${color};">
+                        ${quake.Magnitude} M
+                    </span>
+                    <div class="popup-title-group">
+                        <h4 class="popup-title">${quake.Wilayah}</h4>
+                        <span class="popup-time"><i class="far fa-clock"></i> ${quake.Tanggal} | ${quake.Jam}</span>
+                    </div>
+                </div>
+                <div class="popup-body">
+                    <div class="popup-row">
+                        <span class="popup-label"><i class="fas fa-location-dot"></i> ${coordLabel}</span>
+                        <span class="popup-val"><code>${quake.Coordinates}</code> (${quake.Lintang}, ${quake.Bujur})</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label"><i class="fas fa-arrows-down-to-line"></i> ${depthLabel}</span>
+                        <span class="popup-val">${quake.Kedalaman}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label"><i class="fas fa-triangle-exclamation"></i> ${potLabel}</span>
+                        <span class="popup-val ${isSafe ? 'text-safe' : 'text-warn'}">${potensiDisplay}</span>
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <span class="popup-credit">${creditText}</span>
+                    <button class="popup-zoom-btn" onclick="map.flyTo([${quake.lat}, ${quake.lng}], 9, {duration: 1})">
+                        <i class="fas fa-magnifying-glass-plus"></i> ${zoomText}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Populate markers on map
+    earthquakes.forEach((quake) => {
+        const color = getMarkerColor(quake.mag);
+        const radius = getMarkerRadius(quake.mag);
+        const isHighRisk = quake.mag >= 5.5;
+
+        let marker;
+        if (isHighRisk) {
+            const iconHtml = `
+                <div class="pulse-marker-wrapper">
+                    <span class="pulse-ring" style="border-color: ${color}; background-color: ${color}20;"></span>
+                    <span class="pulse-dot" style="background-color: ${color}; width: ${radius * 1.5}px; height: ${radius * 1.5}px;">
+                        <span class="pulse-label">${quake.Magnitude}</span>
+                    </span>
+                </div>
+            `;
+            const customIcon = L.divIcon({
+                className: 'custom-leaflet-pulse',
+                html: iconHtml,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -18]
+            });
+            marker = L.marker([quake.lat, quake.lng], { icon: customIcon });
+        } else {
+            marker = L.circleMarker([quake.lat, quake.lng], {
+                radius: radius,
+                fillColor: color,
+                color: '#ffffff',
+                weight: 1.5,
+                opacity: 0.9,
+                fillOpacity: 0.75
+            });
+        }
+
+        marker.bindPopup(createPopupContent(quake), {
+            className: 'gempain-popup',
+            maxWidth: 320,
+            closeButton: true
+        });
+
+        if (!isHighRisk) {
+            marker.on('mouseover', function () {
+                this.setStyle({ fillOpacity: 1, radius: radius + 3, weight: 2.5 });
+            });
+            marker.on('mouseout', function () {
+                this.setStyle({ fillOpacity: 0.75, radius: radius, weight: 1.5 });
+            });
+        }
+
+        marker.on('click', function () {
+            highlightCard(quake.id);
+        });
+
+        markerGroup.addLayer(marker);
+        markers.push({
+            id: quake.id,
+            quake: quake,
+            marker: marker
+        });
+    });
+
+    if (markers.length > 0) {
+        map.fitBounds(markerGroup.getBounds(), { padding: [40, 40], maxZoom: 7 });
+    }
+
+    // Reset map view
+    function resetMapView() {
+        if (markers.length > 0) {
+            map.fitBounds(markerGroup.getBounds(), { padding: [40, 40], maxZoom: 7, animate: true, duration: 1.2 });
+        } else {
+            map.setView(defaultCenter, defaultZoom, { animate: true });
+        }
+    }
+
+    // Focus on specific earthquake
+    function focusEarthquake(quakeId) {
+        const item = markers.find(m => m.id === quakeId);
+        if (!item) return;
+
+        map.flyTo([item.quake.lat, item.quake.lng], 8, {
+            animate: true,
+            duration: 1.2
+        });
+
+        setTimeout(() => {
+            item.marker.openPopup();
+        }, 600);
+
+        highlightCard(quakeId);
+
+        const mapElement = document.getElementById('earthquakeMap');
+        if (mapElement) {
+            const rect = mapElement.getBoundingClientRect();
+            if (rect.top < 0 || rect.bottom > window.innerHeight) {
+                mapElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+
+    function highlightCard(quakeId) {
+        document.querySelectorAll('.quake-pin-card').forEach(card => {
+            card.classList.remove('active-card');
+        });
+        const activeCard = document.getElementById(`quake-card-${quakeId}`);
+        if (activeCard) {
+            activeCard.classList.add('active-card');
+        }
+    }
+
+    // Magnitude Filter
+    let currentFilter = 'all';
+    function setMagnitudeFilter(minMag, btnElement) {
+        currentFilter = minMag;
+        document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+
+        let visibleCount = 0;
+
+        markers.forEach(item => {
+            const mag = item.quake.mag;
+            let show = false;
+            if (minMag === 'all') {
+                show = true;
+            } else {
+                show = mag >= parseFloat(minMag);
+            }
+
+            const card = document.getElementById(`quake-card-${item.id}`);
+
+            if (show) {
+                if (!markerGroup.hasLayer(item.marker)) {
+                    markerGroup.addLayer(item.marker);
+                }
+                if (card) card.style.display = '';
+                visibleCount++;
+            } else {
+                if (markerGroup.hasLayer(item.marker)) {
+                    markerGroup.removeLayer(item.marker);
+                }
+                if (card) card.style.display = 'none';
+            }
+        });
+
+        const countBadge = document.getElementById('visibleQuakeCount');
+        if (countBadge) {
+            countBadge.innerText = `${visibleCount} ${t('map.points_detected')}`;
+        }
+
+        if (visibleCount > 0) {
+            map.fitBounds(markerGroup.getBounds(), { padding: [40, 40], maxZoom: 7, animate: true });
+        }
+    }
+
+    // Search Filter
+    function searchQuakeList(query) {
+        const q = query.toLowerCase().trim();
+        let visibleCount = 0;
+
+        markers.forEach(item => {
+            const wilayah = item.quake.Wilayah.toLowerCase();
+            const coord = (item.quake.Coordinates || '').toLowerCase();
+            const match = !q || wilayah.includes(q) || coord.includes(q);
+
+            const card = document.getElementById(`quake-card-${item.id}`);
+
+            if (match) {
+                if (!markerGroup.hasLayer(item.marker)) {
+                    markerGroup.addLayer(item.marker);
+                }
+                if (card) card.style.display = '';
+                visibleCount++;
+            } else {
+                if (markerGroup.hasLayer(item.marker)) {
+                    markerGroup.removeLayer(item.marker);
+                }
+                if (card) card.style.display = 'none';
+            }
+        });
+
+        const countBadge = document.getElementById('visibleQuakeCount');
+        if (countBadge) {
+            countBadge.innerText = `${visibleCount} ${t('map.points_detected')}`;
+        }
+    }
+
+    // Language Change Listener for dynamic map popups and card texts
+    window.onLanguageChange = function(lang) {
+        // Update marker popups
+        markers.forEach(item => {
+            item.marker.setPopupContent(createPopupContent(item.quake));
+        });
+
+        // Update card potentials
+        document.querySelectorAll('.potensi-text').forEach(el => {
+            const raw = el.getAttribute('data-raw-potensi');
+            el.textContent = formatTsunamiText(raw);
+        });
+
+        // Update visible count text
+        const countBadge = document.getElementById('visibleQuakeCount');
+        if (countBadge) {
+            const count = markers.filter(m => markerGroup.hasLayer(m.marker)).length;
+            countBadge.innerText = `${count} ${t('map.points_detected')}`;
+        }
+    };
+
+    // Apply language on load for dynamic components
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof onLanguageChange === 'function') {
+            onLanguageChange(currentLanguage);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        map.invalidateSize();
+    });
+</script>
+{% endblock %}
